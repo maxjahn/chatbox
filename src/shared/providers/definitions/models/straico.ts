@@ -100,7 +100,7 @@ export default class Straico extends OpenAICompatible {
 
   public async listModels(): Promise<ProviderModelInfo[]> {
     const response = await this.dependencies.request.apiRequest({
-      url: 'https://api.straico.com/v1/models',
+      url: 'https://api.straico.com/v2/models',
       method: 'GET',
       headers: {
         Authorization: `Bearer ${this.options.apiKey}`,

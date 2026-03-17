@@ -587,7 +587,7 @@ const ProviderInfoResponseSchema = z.object({
 export async function getProviderModelsInfo(params: { modelIds: string[] }) {
   const afetch = await getAfetch()
   const res = await afetch(
-    `${getAPIOrigin()}/api/v2/provider_models_info`,
+    `${getAPIOrigin()}/api/provider_models_info`,
     {
       method: 'POST',
       headers: {

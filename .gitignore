@@ -178,3 +178,4 @@ electron-builder.env
 
 .env.sentry-build-plugin
 .sisyphus/
+node-compile-cache/

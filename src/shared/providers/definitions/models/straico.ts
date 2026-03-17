@@ -27,6 +27,7 @@ export default class Straico extends OpenAICompatible {
     this.options = {
       ...options,
       apiHost,
+      stream: false,
     }
   }
 

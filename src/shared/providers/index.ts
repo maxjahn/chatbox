@@ -18,6 +18,7 @@ import './definitions/groq'
 import './definitions/xai'
 import './definitions/mistral-ai'
 import './definitions/perplexity'
+import './definitions/straico'
 import './definitions/volcengine'
 import './definitions/chatglm'
 import {

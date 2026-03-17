@@ -20,7 +20,7 @@ export default class Straico extends OpenAICompatible {
         topP: options.topP,
         maxOutputTokens: options.maxOutputTokens,
         useProxy: options.useProxy,
-        stream: options.stream,
+        stream: false, // Straico's streaming responses are not properly parsed by @ai-sdk/openai-compatible
       },
       dependencies
     )

@@ -32,7 +32,7 @@ type ImageModelFamily = 'gpt' | 'gemini' | 'straico' | 'default'
 const RATIO_OPTIONS: Record<ImageModelFamily, string[]> = {
   gpt: ['auto', '1:1', '3:2', '2:3'],
   gemini: ['auto', '1:1', '3:2', '2:3', '4:3', '3:4', '4:5', '5:4', '16:9', '9:16', '21:9'],
-  straico: ['1:1', '9:16', '16:9'],
+  straico: ['auto', '1:1', '9:16', '16:9'],
   default: ['auto', '1:1', '3:2', '2:3'],
 }
 

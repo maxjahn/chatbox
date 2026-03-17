@@ -92,6 +92,14 @@ export default class Straico extends OpenAICompatible {
       apiKey: this.options.apiKey,
       baseURL: this.options.apiHost,
       fetch: straicoFetch,
+      // Straico expects "models" (array) instead of "model" (string)
+      transformRequestBody: (body) => {
+        const { model, ...rest } = body
+        return {
+          ...rest,
+          models: model ? [model] : undefined,
+        }
+      },
     })
   }
 

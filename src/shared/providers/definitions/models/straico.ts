@@ -2,6 +2,9 @@ import OpenAICompatible, { type OpenAICompatibleSettings } from '../../../models
 import { ApiError } from '../../../models/errors'
 import type { ProviderModelInfo } from '../../../types'
 import type { ModelDependencies } from '../../../types/adapters'
+import { createOpenAICompatible } from '@ai-sdk/openai-compatible'
+import { extractReasoningMiddleware, wrapLanguageModel } from 'ai'
+import { createFetchWithProxy } from '../../../models/utils/fetch-proxy'
 
 interface Options extends OpenAICompatibleSettings {}
 
@@ -10,7 +13,7 @@ export default class Straico extends OpenAICompatible {
   public options: Options
 
   constructor(options: Omit<Options, 'apiHost'>, dependencies: ModelDependencies) {
-    const apiHost = 'https://api.straico.com/v2'
+    const apiHost = 'https://api.straico.com/v1'
     super(
       {
         apiKey: options.apiKey,
@@ -20,7 +23,7 @@ export default class Straico extends OpenAICompatible {
         topP: options.topP,
         maxOutputTokens: options.maxOutputTokens,
         useProxy: options.useProxy,
-        stream: false, // Straico's streaming responses are not properly parsed by @ai-sdk/openai-compatible
+        stream: false, // Straico's streaming is not compatible with @ai-sdk/openai-compatible
       },
       dependencies
     )
@@ -28,6 +31,76 @@ export default class Straico extends OpenAICompatible {
       ...options,
       apiHost,
     }
+  }
+
+  /**
+   * Override getProvider to use a custom fetch that unwraps Straico's
+   * { success, data } response envelope into a standard OpenAI response.
+   */
+  protected getProvider() {
+    const baseFetch = createFetchWithProxy(this.options.useProxy, this.dependencies)
+
+    const straicoFetch = async (url: RequestInfo | URL, init?: RequestInit): Promise<Response> => {
+      const response = await baseFetch(url, init)
+
+      // Clone the response so we can read the body
+      const cloned = response.clone()
+      try {
+        const json = await cloned.json()
+
+        // Straico wraps responses in { success, data }
+        // Unwrap so the SDK sees a standard OpenAI response
+        if (json && typeof json === 'object' && 'success' in json && 'data' in json) {
+          if (!json.success) {
+            throw new ApiError(`Straico API error: ${JSON.stringify(json)}`)
+          }
+          const unwrapped = json.data
+          // The data might contain the completion nested under completions[modelId].completion
+          // or it might be a direct OpenAI-compatible response
+          let openAIResponse = unwrapped
+
+          // Handle native Straico format: { completions: { "model/id": { completion: { choices: [...] } } } }
+          if (unwrapped?.completions && typeof unwrapped.completions === 'object') {
+            const modelKeys = Object.keys(unwrapped.completions)
+            if (modelKeys.length > 0) {
+              const modelData = unwrapped.completions[modelKeys[0]]
+              if (modelData?.completion) {
+                openAIResponse = modelData.completion
+              }
+            }
+          }
+          // Handle: { completion: { choices: [...] } }
+          else if (unwrapped?.completion && unwrapped.completion.choices) {
+            openAIResponse = unwrapped.completion
+          }
+
+          return new Response(JSON.stringify(openAIResponse), {
+            status: response.status,
+            statusText: response.statusText,
+            headers: response.headers,
+          })
+        }
+      } catch {
+        // If JSON parsing fails, return the original response (might be SSE stream)
+      }
+
+      return response
+    }
+
+    return createOpenAICompatible({
+      name: this.name,
+      apiKey: this.options.apiKey,
+      baseURL: this.options.apiHost,
+      fetch: straicoFetch,
+    })
+  }
+
+  protected getChatModel() {
+    const provider = this.getProvider()
+    return wrapLanguageModel({
+      model: provider.languageModel(this.options.model.modelId),
+      middleware: extractReasoningMiddleware({ tagName: 'think' }),
+    })
   }
 
   public async paint(

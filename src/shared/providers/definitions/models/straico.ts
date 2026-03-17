@@ -10,7 +10,7 @@ export default class Straico extends OpenAICompatible {
   public options: Options
 
   constructor(options: Omit<Options, 'apiHost'>, dependencies: ModelDependencies) {
-    const apiHost = 'https://api.straico.com/v0'
+    const apiHost = 'https://api.straico.com/v2'
     super(
       {
         apiKey: options.apiKey,
@@ -114,44 +114,73 @@ export default class Straico extends OpenAICompatible {
     }
 
     const models: ProviderModelInfo[] = []
+    const data = json.data
 
-    if (!Array.isArray(json.data)) {
-      throw new ApiError(`Unexpected Straico v2 response format: data is not an array`)
-    }
-
-    for (const model of json.data) {
-      if (model.model_type === 'chat') {
+    // v2 returns categorized format: { chat: [...], image: [...] }
+    if (data && typeof data === 'object' && !Array.isArray(data)) {
+      const chatModels: any[] = data.chat || []
+      for (const model of chatModels) {
         const info: ProviderModelInfo = {
-          modelId: model.id,
+          modelId: model.model,
           type: 'chat',
           nickname: model.name,
         }
-        if (model.word_limit) {
-          info.contextWindow = model.word_limit
+        if (model.max_input) {
+          info.contextWindow = model.max_input
         }
         if (model.max_output) {
           info.maxOutput = model.max_output
         }
         const capabilities: ProviderModelInfo['capabilities'] = []
-        const features: string[] = model.metadata?.features || []
-        const metaCapabilities: string[] = model.metadata?.capabilities || []
-        if (features.includes('Image input')) {
+        if (model.image) {
           capabilities.push('vision')
         }
-        if (features.includes('Web search') || metaCapabilities.includes('Browsing') || metaCapabilities.includes('Web browsing')) {
+        if (model.tool_use) {
+          capabilities.push('tool_use')
+        }
+        if (model.web_search) {
           capabilities.push('web_search')
         }
         if (capabilities.length > 0) {
           info.capabilities = capabilities
         }
         models.push(info)
-      } else if (model.model_type === 'image') {
+      }
+
+      const imageModels: any[] = data.image || []
+      for (const model of imageModels) {
         models.push({
-          modelId: model.id,
-          type: 'image',
+          modelId: model.model,
+          type: 'chat',
           nickname: model.name,
         })
       }
+    } else if (Array.isArray(data)) {
+      // Fallback for flat array format
+      for (const model of data) {
+        if (model.model_type === 'chat') {
+          const info: ProviderModelInfo = {
+            modelId: model.id || model.model,
+            type: 'chat',
+            nickname: model.name,
+          }
+          if (model.max_input || model.word_limit) {
+            info.contextWindow = model.max_input || model.word_limit
+          }
+          if (model.max_output) {
+            info.maxOutput = model.max_output
+          }
+          models.push(info)
+        } else if (model.model_type === 'image') {
+          models.push({
+            modelId: model.id || model.model,
+            type: 'image',
+            nickname: model.name,
+          })
+        }
+      }
+    } else {
+      throw new ApiError(`Unexpected Straico v2 response format`)
     }
 
     return models

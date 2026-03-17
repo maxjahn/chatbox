@@ -11,7 +11,7 @@ export const straicoProvider = defineProvider({
     apiKey: 'https://platform.straico.com/settings-api',
   },
   defaultSettings: {
-    apiHost: 'https://api.straico.com/v0',
+    apiHost: 'https://api.straico.com/v2',
     models: [
       {
         modelId: 'deepseek/deepseek-chat',

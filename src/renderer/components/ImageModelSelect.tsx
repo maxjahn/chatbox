@@ -103,6 +103,19 @@ export const ImageModelSelect = forwardRef<HTMLButtonElement, ImageModelSelectPr
         .filter((item) => item.imageModels.length > 0)
     }, [providers])
 
+    const straicoImageModels = useMemo(() => {
+      const provider = providers.find((p) => p.id === ModelProviderEnum.Straico)
+      if (!provider) return null
+      const providerModels = provider.models || provider.defaultSettings?.models || []
+      const imageModels: ImageModel[] = providerModels
+        .filter((m) => m.type === 'image')
+        .map((m) => ({
+          modelId: m.modelId,
+          displayName: m.nickname || m.modelId,
+        }))
+      return imageModels.length > 0 ? { provider, imageModels } : null
+    }, [providers])
+
     const combobox = useCombobox({
       onDropdownClose: () => {
         combobox.resetSelectedOption()
@@ -214,6 +227,26 @@ export const ImageModelSelect = forwardRef<HTMLButtonElement, ImageModelSelectPr
                 </Combobox.Group>
               </div>
             ))}
+
+            {straicoImageModels && (
+              <>
+                <Divider my="xs" />
+                <Combobox.Group
+                  label="Straico"
+                  classNames={{ groupLabel: '!text-xs !font-semibold !uppercase tracking-wide' }}
+                >
+                  {straicoImageModels.imageModels.map((model) => (
+                    <Combobox.Option
+                      key={`${ModelProviderEnum.Straico}:${model.modelId}`}
+                      value={`${ModelProviderEnum.Straico}:${model.modelId}`}
+                      className="!rounded-lg"
+                    >
+                      <Text size="sm">{model.displayName}</Text>
+                    </Combobox.Option>
+                  ))}
+                </Combobox.Group>
+              </>
+            )}
           </Combobox.Options>
         </Combobox.Dropdown>
       </Combobox>

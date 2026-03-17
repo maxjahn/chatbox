@@ -120,33 +120,38 @@ export default class Straico extends OpenAICompatible {
     }
 
     for (const model of json.data) {
-      // Only include chat models
-      if (model.model_type !== 'chat') continue
-
-      const info: ProviderModelInfo = {
-        modelId: model.id,
-        type: 'chat',
-        nickname: model.name,
+      if (model.model_type === 'chat') {
+        const info: ProviderModelInfo = {
+          modelId: model.id,
+          type: 'chat',
+          nickname: model.name,
+        }
+        if (model.word_limit) {
+          info.contextWindow = model.word_limit
+        }
+        if (model.max_output) {
+          info.maxOutput = model.max_output
+        }
+        const capabilities: ProviderModelInfo['capabilities'] = []
+        const features: string[] = model.metadata?.features || []
+        const metaCapabilities: string[] = model.metadata?.capabilities || []
+        if (features.includes('Image input')) {
+          capabilities.push('vision')
+        }
+        if (features.includes('Web search') || metaCapabilities.includes('Browsing') || metaCapabilities.includes('Web browsing')) {
+          capabilities.push('web_search')
+        }
+        if (capabilities.length > 0) {
+          info.capabilities = capabilities
+        }
+        models.push(info)
+      } else if (model.model_type === 'image') {
+        models.push({
+          modelId: model.id,
+          type: 'image',
+          nickname: model.name,
+        })
       }
-      if (model.word_limit) {
-        info.contextWindow = model.word_limit
-      }
-      if (model.max_output) {
-        info.maxOutput = model.max_output
-      }
-      const capabilities: ProviderModelInfo['capabilities'] = []
-      const features: string[] = model.metadata?.features || []
-      const metaCapabilities: string[] = model.metadata?.capabilities || []
-      if (features.includes('Image input')) {
-        capabilities.push('vision')
-      }
-      if (features.includes('Web search') || metaCapabilities.includes('Browsing') || metaCapabilities.includes('Web browsing')) {
-        capabilities.push('web_search')
-      }
-      if (capabilities.length > 0) {
-        info.capabilities = capabilities
-      }
-      models.push(info)
     }
 
     return models

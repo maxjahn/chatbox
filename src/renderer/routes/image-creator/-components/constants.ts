@@ -27,15 +27,20 @@ export const GEMINI_IMAGE_MODEL_IDS = [
   'gemini-3.1-flash-image',
 ]
 
-type ImageModelFamily = 'gpt' | 'gemini' | 'default'
+type ImageModelFamily = 'gpt' | 'gemini' | 'straico' | 'default'
 
 const RATIO_OPTIONS: Record<ImageModelFamily, string[]> = {
   gpt: ['auto', '1:1', '3:2', '2:3'],
   gemini: ['auto', '1:1', '3:2', '2:3', '4:3', '3:4', '4:5', '5:4', '16:9', '9:16', '21:9'],
+  straico: ['1:1', '9:16', '16:9'],
   default: ['auto', '1:1', '3:2', '2:3'],
 }
 
-export function getRatioOptionsForModel(modelId: string): string[] {
+export function getRatioOptionsForModel(modelId: string, provider?: string): string[] {
+  if (provider === 'straico') {
+    return RATIO_OPTIONS.straico
+  }
+
   switch (modelId) {
     case '':
     case 'gpt-image-1':

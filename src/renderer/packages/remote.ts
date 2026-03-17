@@ -524,7 +524,7 @@ const RemoteModelInfoSchema = z.object({
   modelId: z.string(),
   modelName: z.string(),
   labels: z.array(z.string()).optional(),
-  type: z.enum(['chat', 'embedding', 'rerank']).optional(),
+  type: z.enum(['chat', 'embedding', 'rerank', 'image']).optional(),
   apiStyle: z.enum(['google', 'openai', 'anthropic']).optional(),
   contextWindow: z.number().optional(),
   capabilities: z.array(z.enum(['vision', 'tool_use', 'reasoning'])).optional(),

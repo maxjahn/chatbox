@@ -222,7 +222,7 @@ function ImageCreatorPage() {
   const [showRatioDrawer, setShowRatioDrawer] = useState(false)
 
   // Get ratio options based on selected model
-  const ratioOptions = getRatioOptionsForModel(selectedModel)
+  const ratioOptions = getRatioOptionsForModel(selectedModel, selectedProvider)
 
   const currentGeneratingId = useCurrentGeneratingId()
   const currentRecordId = useCurrentRecordId()
@@ -259,8 +259,8 @@ function ImageCreatorPage() {
     setSelectedModel(model)
 
     // Reset ratio to 'auto' if current ratio is not supported by the new model
-    const newRatioOptions = getRatioOptionsForModel(model)
-    setSelectedRatio((prev) => (newRatioOptions.includes(prev) ? prev : 'auto'))
+    const newRatioOptions = getRatioOptionsForModel(model, provider)
+    setSelectedRatio((prev) => (newRatioOptions.includes(prev) ? prev : newRatioOptions[0] || 'auto'))
   }, [])
 
   const handleImageUpload = useCallback((files: FileList | null) => {
@@ -446,6 +446,21 @@ function ImageCreatorPage() {
           groups.push({ label: provider.name, providerId: provider.id, models })
         }
       })
+
+    // Straico: dynamically include models with type === 'image'
+    const straicoProvider = providers.find((p) => p.id === ModelProviderEnum.Straico)
+    if (straicoProvider) {
+      const providerModels = straicoProvider.models || straicoProvider.defaultSettings?.models || []
+      const imageModels = providerModels
+        .filter((m) => m.type === 'image')
+        .map((m) => ({
+          modelId: m.modelId,
+          displayName: m.nickname || m.modelId,
+        }))
+      if (imageModels.length > 0) {
+        groups.push({ label: 'Straico', providerId: ModelProviderEnum.Straico, models: imageModels })
+      }
+    }
 
     return groups
   }, [providers])
